@@ -232,6 +232,8 @@ const (
 	ErrDeadlineExceeded = "DeadlineExceeded"
 
 	ConfigMapName = "workflow-controller-configmap"
+
+	WorkflowFinalizer = "argoproj.io/workflow-finalizer"
 )
 
 // AnnotationKeyKillCmd specifies the command to use to kill to container, useful for injected sidecars
