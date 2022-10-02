@@ -507,12 +507,18 @@ func (wfc *WorkflowController) processNextPodCleanupItem(ctx context.Context) bo
 				return err
 			}
 		case labelPodCompleted:
+			// remove the argoproj.io/finalizer finalizer from the pod
+			p, err := wfc.getPod(namespace, podName)
+			if err != nil {
+				return err
+			}
+			finalizers := util.RemoveString(p.Finalizers, common.WorkflowFinalizer)
 			data, err := json.Marshal(map[string]interface{}{
 				"metadata": map[string]interface{}{
 					"labels": map[string]interface{}{
 						common.LabelKeyCompleted: "true",
 					},
-					"finalizers": []string{},
+					"finalizers": finalizers,
 				},
 			})
 			if err != nil {
@@ -530,10 +536,15 @@ func (wfc *WorkflowController) processNextPodCleanupItem(ctx context.Context) bo
 				return err
 			}
 		case deletePod:
-			// remove the finalizer to allow the pod to be deleted
+			// remove the argoproj.io/finalizer finalizer from the pod
+			p, err := wfc.getPod(namespace, podName)
+			if err != nil {
+				return err
+			}
+			finalizers := util.RemoveString(p.Finalizers, common.WorkflowFinalizer)
 			data, err := json.Marshal(map[string]interface{}{
 				"metadata": map[string]interface{}{
-					"finalizers": []string{},
+					"finalizers": finalizers,
 				},
 			})
 			if err != nil {
