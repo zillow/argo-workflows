@@ -3,15 +3,10 @@ package fixtures
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
-
-	apierr "k8s.io/apimachinery/pkg/api/errors"
-
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/TwiN/go-color"
 	"github.com/stretchr/testify/suite"
@@ -140,22 +135,6 @@ func (s *E2ESuite) DeleteResources() {
 
 	for _, r := range resources {
 		for {
-			// remove finalizer from all the resources of the given GroupVersionResource
-			resourceInf := s.dynamicFor(r)
-			resourceList, err := resourceInf.List(ctx, metav1.ListOptions{LabelSelector: common.LabelKeyCompleted + "=false"})
-			s.CheckError(err)
-			for _, item := range resourceList.Items {
-				patch, err := json.Marshal(map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"finalizers": []string{},
-					},
-				})
-				s.CheckError(err)
-				_, err = resourceInf.Patch(ctx, item.GetName(), types.MergePatchType, patch, metav1.PatchOptions{})
-				if err != nil && !apierr.IsNotFound(err) {
-					s.CheckError(err)
-				}
-			}
 			s.CheckError(s.dynamicFor(r).DeleteCollection(ctx, metav1.DeleteOptions{GracePeriodSeconds: pointer.Int64Ptr(2)}, metav1.ListOptions{LabelSelector: l(r)}))
 			ls, err := s.dynamicFor(r).List(ctx, metav1.ListOptions{LabelSelector: l(r)})
 			s.CheckError(err)
