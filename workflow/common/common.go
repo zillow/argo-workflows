@@ -155,6 +155,9 @@ const (
 	// Finalizer to block deletion of the workflow if deletion of artifacts fail for some reason.
 	FinalizerArtifactGC = workflow.WorkflowFullName + "/artifact-gc"
 
+	// Finalizer blocks deletion of pods until we're captured their status.
+	Finalizer = workflow.WorkflowFullName
+
 	// Variables that are added to the scope during template execution and can be referenced using {{}} syntax
 
 	// GlobalVarWorkflowName is a global workflow variable referencing the workflow's metadata.name field
@@ -232,8 +235,6 @@ const (
 	ErrDeadlineExceeded = "DeadlineExceeded"
 
 	ConfigMapName = "workflow-controller-configmap"
-
-	WorkflowFinalizer = "argoproj.io/workflow-finalizer"
 )
 
 // AnnotationKeyKillCmd specifies the command to use to kill to container, useful for injected sidecars
