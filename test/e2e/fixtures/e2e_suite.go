@@ -3,10 +3,15 @@ package fixtures
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	apierr "k8s.io/apimachinery/pkg/api/errors"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/TwiN/go-color"
 	"github.com/stretchr/testify/suite"
@@ -120,6 +125,7 @@ func (s *E2ESuite) DeleteResources() {
 		return Label
 	}
 
+	pods := schema.GroupVersionResource{Version: "v1", Resource: "pods"}
 	resources := []schema.GroupVersionResource{
 		{Group: workflow.Group, Version: workflow.Version, Resource: workflow.CronWorkflowPlural},
 		{Group: workflow.Group, Version: workflow.Version, Resource: workflow.WorkflowPlural},
@@ -128,7 +134,7 @@ func (s *E2ESuite) DeleteResources() {
 		{Group: workflow.Group, Version: workflow.Version, Resource: workflow.WorkflowEventBindingPlural},
 		{Group: workflow.Group, Version: workflow.Version, Resource: "sensors"},
 		{Group: workflow.Group, Version: workflow.Version, Resource: "eventsources"},
-		{Version: "v1", Resource: "pods"},
+		pods,
 		{Version: "v1", Resource: "resourcequotas"},
 		{Version: "v1", Resource: "configmaps"},
 	}
@@ -142,6 +148,23 @@ func (s *E2ESuite) DeleteResources() {
 				break
 			}
 			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	// remove finalizer from all the resources of the given GroupVersionResource
+	resourceInf := s.dynamicFor(pods)
+	resourceList, err := resourceInf.List(ctx, metav1.ListOptions{LabelSelector: common.LabelKeyCompleted + "=false"})
+	s.CheckError(err)
+	for _, item := range resourceList.Items {
+		patch, err := json.Marshal(map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"finalizers": []string{},
+			},
+		})
+		s.CheckError(err)
+		_, err = resourceInf.Patch(ctx, item.GetName(), types.MergePatchType, patch, metav1.PatchOptions{})
+		if err != nil && !apierr.IsNotFound(err) {
+			s.CheckError(err)
 		}
 	}
 
