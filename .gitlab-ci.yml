@@ -31,6 +31,13 @@ variables:
     - make dist/workflow-controller
     # Add echo for clarity
     - echo "Building Docker image... CONTEXT is -->${CONTEXT}<--"
+    - echo "IMAGE_REPOSITORY_TAG = -->${IMAGE_REPOSITORY_TAG}<--"
+    - echo DOCKER_BUILDKIT=1 docker build \
+        --target workflow-controller \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg "IMAGE_REPOSITORY_TAG=${IMAGE_REPOSITORY_TAG}" \
+        -t ${IMAGE_REPOSITORY_TAG} \
+        ${CONTEXT}
     - |
       DOCKER_BUILDKIT=1 docker build \
         --target workflow-controller \
