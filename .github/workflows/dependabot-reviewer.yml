@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   review:
-    if: ${{ github.actor == 'dependabot[bot]' && github.repository == 'argoproj/argo-workflows'}}
+    if: ${{ github.actor == 'dependabot[bot]' && github.repository == 'argoproj/argo-workflows' || github.repository == 'zillow/argo-workflows'}}
     permissions:
       pull-requests: write
       contents: write
