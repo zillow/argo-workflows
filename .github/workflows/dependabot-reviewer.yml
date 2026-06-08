@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   review:
-    if: ${{ github.actor == 'dependabot[bot]' && (github.repository == 'argoproj/argo-workflows' || github.repository == 'zillow/argo-workflows') }}
+    if: ${{ github.actor == 'dependabot[bot]' && github.repository == 'argoproj/argo-workflows'}}
     permissions:
       pull-requests: write
       contents: write
@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v3
+        uses: dependabot/fetch-metadata@v1.6.0
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Approve PR

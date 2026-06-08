@@ -26,26 +26,53 @@ variables:
     - IMAGE_REPOSITORY="${IMAGE_REPOSITORY_PREFIX}/${ARTIFACT_NAME}"
     - IMAGE_REPOSITORY_TAG="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
   script:
-    # Add echo for clarity
-    - echo "Running make dist/workflow-controller..."
-    - make dist/workflow-controller
-    # Add echo for clarity
-    - echo "Building Docker image... CONTEXT is -->${CONTEXT}<--"
+    # The Dockerfile already runs `make dist/...` inside the build stages it needs,
+    # so we don't pre-build anything on the host. Pre-building only the
+    # workflow-controller binary used to silently hide the fact that the argocli
+    # (argo-server) image -- the one that actually contains the compiled UI bundle
+    # -- was never being built or pushed from this pipeline.
+    - echo "Building Docker image target=${DOCKER_TARGET} for ${ARTIFACT_NAME}... CONTEXT is -->${CONTEXT}<--"
     - |
       DOCKER_BUILDKIT=1 docker build \
-        --target workflow-controller \
+        --target ${DOCKER_TARGET} \
         --build-arg BUILDKIT_INLINE_CACHE=1 \
         --build-arg "IMAGE_REPOSITORY_TAG=${IMAGE_REPOSITORY_TAG}" \
         -t ${IMAGE_REPOSITORY_TAG} \
         ${CONTEXT}
     - echo ${DOCKER_API_KEY} | docker login -u ${DOCKER_USERNAME} --password-stdin ${DOCKER_REPO_URL}
     - docker push ${IMAGE_REPOSITORY_TAG}
+
 stages:
   - build:images
 
-build:workflows:
+# Workflow controller image (orchestrates workflows on k8s, no UI).
+# Kept under the existing `argo-workflows` artifact name for backwards
+# compatibility with current aip-k8s-manifests references.
+build:workflow-controller:
   extends: .build_templatized_docker_image
   variables:
     ARTIFACT_NAME: "argo-workflows"
+    DOCKER_TARGET: "workflow-controller"
+    CONTEXT: "./"
+  stage: build:images
+
+# Argo CLI / argo-server image. This is the image used by the `argo-server`
+# Deployment and is the ONLY image that contains the compiled UI bundle
+# (see Dockerfile stages `argo-ui` -> `argocli-build` -> `argocli`).
+# Any UI fix under ui/src/** only ships through this image.
+build:argo-server:
+  extends: .build_templatized_docker_image
+  variables:
+    ARTIFACT_NAME: "argo-server"
+    DOCKER_TARGET: "argocli"
+    CONTEXT: "./"
+  stage: build:images
+
+# Argo executor image (used as init/sidecar in workflow pods, no UI).
+build:argoexec:
+  extends: .build_templatized_docker_image
+  variables:
+    ARTIFACT_NAME: "argoexec"
+    DOCKER_TARGET: "argoexec"
     CONTEXT: "./"
   stage: build:images
